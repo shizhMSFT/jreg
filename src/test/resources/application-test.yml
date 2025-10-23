@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: jreg-test
+
+aws:
+  s3:
+    bucket-name: jreg-test-registry
+    endpoint: http://localhost:4566
+    region: us-east-1
+    access-key: test
+    secret-key: test
+
+logging:
+  level:
+    com.jreg: DEBUG
+    org.testcontainers: INFO

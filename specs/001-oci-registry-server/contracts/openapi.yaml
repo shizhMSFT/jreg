@@ -1,0 +1,901 @@
+openapi: 3.0.3
+info:
+  title: jreg - OCI Distribution Spec v1.1.1
+  description: |
+    OCI-compliant container registry server implementing the OCI Distribution Specification v1.1.1.
+    
+    This API enables pushing and pulling OCI images and artifacts using Docker CLI, ORAS, and other OCI-compliant tools.
+    
+    **Key Features:**
+    - Full OCI Distribution Spec v1.1.1 compliance
+    - Content-addressable storage (SHA-256/SHA-512)
+    - Chunked blob uploads with resume support
+    - Multi-architecture image support (OCI Image Index)
+    - Referrers API for artifact linking (signatures, SBOMs)
+    - Tag management and discovery
+    
+    **Authentication:** Deferred for MVP (all endpoints publicly accessible)
+  version: 1.0.0
+  contact:
+    name: jreg Development Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080/v2
+    description: Local development server
+  - url: https://registry.example.com/v2
+    description: Production server
+
+tags:
+  - name: base
+    description: API version check
+  - name: blobs
+    description: Blob operations (layers, config files)
+  - name: manifests
+    description: Manifest operations (image descriptors)
+  - name: uploads
+    description: Chunked blob upload sessions
+  - name: tags
+    description: Tag listing and discovery
+
+paths:
+  # end-1: Base endpoint
+  /:
+    get:
+      operationId: getApiVersion
+      tags: [base]
+      summary: Check API version
+      description: |
+        Returns the API version (OCI Distribution Spec end-1).
+        Used by clients to verify registry compatibility.
+      responses:
+        '200':
+          description: API version check successful
+          headers:
+            Docker-Distribution-API-Version:
+              schema:
+                type: string
+                example: registry/2.0
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "1.0.0"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # end-2: Blob existence check
+  /{name}/blobs/{digest}:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+      - $ref: '#/components/parameters/Digest'
+    
+    head:
+      operationId: checkBlobExists
+      tags: [blobs]
+      summary: Check if blob exists
+      description: |
+        Check if a blob exists in the repository (OCI Distribution Spec end-2).
+        Returns 200 if blob exists, 404 if not found.
+      responses:
+        '200':
+          description: Blob exists
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+              description: Blob size in bytes
+            Docker-Content-Digest:
+              schema:
+                type: string
+              description: Canonical digest of the blob
+            Content-Type:
+              schema:
+                type: string
+                example: application/octet-stream
+        '404':
+          $ref: '#/components/responses/BlobNotFound'
+    
+    # end-3: Blob download
+    get:
+      operationId: getBlob
+      tags: [blobs]
+      summary: Download blob
+      description: |
+        Download a blob from the repository (OCI Distribution Spec end-3).
+        Supports HTTP Range requests for partial downloads.
+      parameters:
+        - name: Range
+          in: header
+          required: false
+          schema:
+            type: string
+            example: bytes=0-1048575
+          description: Request partial content (RFC 7233)
+      responses:
+        '200':
+          description: Blob content
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+            Docker-Content-Digest:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content (range request)
+          headers:
+            Content-Range:
+              schema:
+                type: string
+                example: bytes 0-1048575/5242880
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+            Docker-Content-Digest:
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/BlobNotFound'
+        '416':
+          description: Range not satisfiable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    # end-10: Delete blob
+    delete:
+      operationId: deleteBlob
+      tags: [blobs]
+      summary: Delete blob
+      description: |
+        Delete a blob from the repository (OCI Distribution Spec end-10).
+        Returns 202 Accepted (may be async garbage collection).
+      responses:
+        '202':
+          description: Blob deletion accepted
+        '404':
+          $ref: '#/components/responses/BlobNotFound'
+        '405':
+          description: Method not allowed (blob is referenced by manifests)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # end-4a: Start blob upload (monolithic or chunked)
+  /{name}/blobs/uploads/:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+    
+    post:
+      operationId: startBlobUpload
+      tags: [uploads]
+      summary: Start blob upload
+      description: |
+        Initiate a blob upload session (OCI Distribution Spec end-4a).
+        
+        **Monolithic upload:** Provide `?digest=` query parameter to upload in single request.
+        **Chunked upload:** Omit digest to start a session, then use PATCH to upload chunks.
+        **Mount blob:** Use `?mount=<digest>&from=<repository>` to copy blob from another repo.
+      parameters:
+        - name: digest
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^(sha256|sha512):[a-f0-9]{64,128}$'
+          description: For monolithic upload (single POST with full content)
+        - name: mount
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Mount blob from another repository (blob digest)
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Source repository for mount operation
+      requestBody:
+        description: Blob content (for monolithic upload only)
+        required: false
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Blob uploaded successfully (monolithic)
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /v2/library/ubuntu/blobs/sha256:abc123...
+              description: URL to access the blob
+            Docker-Content-Digest:
+              schema:
+                type: string
+        '202':
+          description: Upload session started (chunked) or mount successful
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /v2/library/ubuntu/blobs/uploads/uuid-1234
+              description: Upload session URL
+            Range:
+              schema:
+                type: string
+                example: 0-0
+              description: Byte range uploaded so far
+            Docker-Upload-UUID:
+              schema:
+                type: string
+                format: uuid
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Source blob not found (mount operation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # end-4b: Get upload session status
+  /{name}/blobs/uploads/{uuid}:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+      - $ref: '#/components/parameters/UploadUUID'
+    
+    get:
+      operationId: getUploadStatus
+      tags: [uploads]
+      summary: Get upload session status
+      description: |
+        Get the status of an upload session (OCI Distribution Spec end-4b).
+        Returns the byte range uploaded so far.
+      responses:
+        '204':
+          description: Upload session exists
+          headers:
+            Range:
+              schema:
+                type: string
+                example: 0-1048575
+              description: Byte range uploaded
+            Docker-Upload-UUID:
+              schema:
+                type: string
+                format: uuid
+        '404':
+          $ref: '#/components/responses/UploadNotFound'
+
+    # end-4c: Upload blob chunk
+    patch:
+      operationId: uploadBlobChunk
+      tags: [uploads]
+      summary: Upload blob chunk
+      description: |
+        Upload a chunk of blob data (OCI Distribution Spec end-4c).
+        Chunks must be uploaded sequentially (no gaps).
+      parameters:
+        - name: Content-Range
+          in: header
+          required: true
+          schema:
+            type: string
+            example: 0-1048575
+          description: Byte range of this chunk
+      requestBody:
+        description: Chunk data
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '202':
+          description: Chunk accepted
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Upload session URL
+            Range:
+              schema:
+                type: string
+              description: Total bytes uploaded
+            Docker-Upload-UUID:
+              schema:
+                type: string
+                format: uuid
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/UploadNotFound'
+        '416':
+          description: Invalid content range (gap detected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    # end-4d: Complete blob upload
+    put:
+      operationId: completeBlobUpload
+      tags: [uploads]
+      summary: Complete blob upload
+      description: |
+        Finalize the blob upload (OCI Distribution Spec end-4d).
+        Verifies digest matches uploaded content.
+      parameters:
+        - name: digest
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^(sha256|sha512):[a-f0-9]{64,128}$'
+          description: Expected digest of complete blob
+      requestBody:
+        description: Final chunk data (optional if all chunks uploaded via PATCH)
+        required: false
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Blob upload completed
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL to access the blob
+            Docker-Content-Digest:
+              schema:
+                type: string
+        '400':
+          description: Digest mismatch or invalid upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/UploadNotFound'
+
+    # end-4e: Cancel upload session
+    delete:
+      operationId: cancelBlobUpload
+      tags: [uploads]
+      summary: Cancel upload session
+      description: |
+        Cancel an upload session and discard uploaded data (OCI Distribution Spec end-4e).
+      responses:
+        '204':
+          description: Upload session cancelled
+        '404':
+          $ref: '#/components/responses/UploadNotFound'
+
+  # end-5: Manifest existence check
+  /{name}/manifests/{reference}:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+      - $ref: '#/components/parameters/ManifestReference'
+    
+    head:
+      operationId: checkManifestExists
+      tags: [manifests]
+      summary: Check if manifest exists
+      description: |
+        Check if a manifest exists (OCI Distribution Spec end-5).
+        Reference can be a tag or digest.
+      responses:
+        '200':
+          description: Manifest exists
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+            Docker-Content-Digest:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+                enum:
+                  - application/vnd.oci.image.manifest.v1+json
+                  - application/vnd.oci.image.index.v1+json
+                  - application/vnd.docker.distribution.manifest.v2+json
+                  - application/vnd.docker.distribution.manifest.list.v2+json
+        '404':
+          $ref: '#/components/responses/ManifestNotFound'
+
+    # end-6: Pull manifest
+    get:
+      operationId: getManifest
+      tags: [manifests]
+      summary: Pull manifest
+      description: |
+        Download a manifest (OCI Distribution Spec end-6).
+        Returns manifest JSON exactly as uploaded (byte-for-byte).
+      responses:
+        '200':
+          description: Manifest content
+          headers:
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+            Docker-Content-Digest:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+          content:
+            application/vnd.oci.image.manifest.v1+json:
+              schema:
+                $ref: '#/components/schemas/ImageManifest'
+            application/vnd.oci.image.index.v1+json:
+              schema:
+                $ref: '#/components/schemas/ImageIndex'
+        '404':
+          $ref: '#/components/responses/ManifestNotFound'
+
+    # end-7: Push manifest
+    put:
+      operationId: putManifest
+      tags: [manifests]
+      summary: Push manifest
+      description: |
+        Upload a manifest (OCI Distribution Spec end-7).
+        Associates manifest with a tag if reference is a tag name.
+      requestBody:
+        description: Manifest JSON
+        required: true
+        content:
+          application/vnd.oci.image.manifest.v1+json:
+            schema:
+              $ref: '#/components/schemas/ImageManifest'
+          application/vnd.oci.image.index.v1+json:
+            schema:
+              $ref: '#/components/schemas/ImageIndex'
+      responses:
+        '201':
+          description: Manifest uploaded successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URL to access the manifest
+            Docker-Content-Digest:
+              schema:
+                type: string
+        '400':
+          description: Invalid manifest JSON or referenced blobs not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    # end-9: Delete manifest
+    delete:
+      operationId: deleteManifest
+      tags: [manifests]
+      summary: Delete manifest
+      description: |
+        Delete a manifest (OCI Distribution Spec end-9).
+        If reference is a tag, only the tag is deleted (manifest remains if referenced by other tags or digest).
+        If reference is a digest, manifest is deleted (all tags pointing to it become dangling).
+      responses:
+        '202':
+          description: Manifest deletion accepted
+        '404':
+          $ref: '#/components/responses/ManifestNotFound'
+
+  # end-8a: List tags
+  /{name}/tags/list:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+    
+    get:
+      operationId: listTags
+      tags: [tags]
+      summary: List repository tags
+      description: |
+        List all tags in a repository (OCI Distribution Spec end-8a).
+        Supports pagination via `n` and `last` query parameters.
+      parameters:
+        - name: n
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 10000
+          description: Maximum number of tags to return
+        - name: last
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Last tag from previous page (for pagination)
+      responses:
+        '200':
+          description: Tag list
+          headers:
+            Link:
+              schema:
+                type: string
+                example: </v2/library/ubuntu/tags/list?n=100&last=v1.0.0>; rel="next"
+              description: Pagination link (if more results available)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Repository name
+                    example: library/ubuntu
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    description: List of tag names (lexically sorted)
+                    example: ["latest", "v1.0.0", "v1.1.0"]
+        '404':
+          description: Repository not found or has no tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # end-12: List referrers
+  /{name}/referrers/{digest}:
+    parameters:
+      - $ref: '#/components/parameters/RepositoryName'
+      - $ref: '#/components/parameters/Digest'
+    
+    get:
+      operationId: listReferrers
+      tags: [manifests]
+      summary: List referrers
+      description: |
+        List manifests that reference the specified manifest via `subject` field (OCI Distribution Spec end-12).
+        Returns an OCI Image Index containing referrer descriptors.
+        Supports filtering by artifact type.
+      parameters:
+        - name: artifactType
+          in: query
+          required: false
+          schema:
+            type: string
+            example: application/vnd.example.signature.v1
+          description: Filter referrers by artifact type
+      responses:
+        '200':
+          description: Referrers index (may be empty)
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/vnd.oci.image.index.v1+json
+          content:
+            application/vnd.oci.image.index.v1+json:
+              schema:
+                $ref: '#/components/schemas/ImageIndex'
+        '404':
+          description: Subject manifest not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    RepositoryName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(\/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*$'
+        example: library/ubuntu
+      description: Repository name (lowercase, alphanumeric with separators)
+
+    Digest:
+      name: digest
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^(sha256|sha512):[a-f0-9]{64,128}$'
+        example: sha256:abc123def456...
+      description: Content digest (algorithm:hex)
+
+    ManifestReference:
+      name: reference
+      in: path
+      required: true
+      schema:
+        type: string
+        example: latest
+      description: Tag name or digest
+
+    UploadUUID:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Upload session UUID
+
+  schemas:
+    ImageManifest:
+      type: object
+      required:
+        - schemaVersion
+        - mediaType
+        - config
+        - layers
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [2]
+          description: OCI schema version
+        mediaType:
+          type: string
+          enum:
+            - application/vnd.oci.image.manifest.v1+json
+          description: Manifest media type
+        config:
+          $ref: '#/components/schemas/Descriptor'
+        layers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Descriptor'
+        subject:
+          $ref: '#/components/schemas/Descriptor'
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+      example:
+        schemaVersion: 2
+        mediaType: application/vnd.oci.image.manifest.v1+json
+        config:
+          mediaType: application/vnd.oci.image.config.v1+json
+          size: 1234
+          digest: sha256:abc123...
+        layers:
+          - mediaType: application/vnd.oci.image.layer.v1.tar+gzip
+            size: 5678
+            digest: sha256:def456...
+
+    ImageIndex:
+      type: object
+      required:
+        - schemaVersion
+        - mediaType
+        - manifests
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [2]
+        mediaType:
+          type: string
+          enum:
+            - application/vnd.oci.image.index.v1+json
+        manifests:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Descriptor'
+              - type: object
+                properties:
+                  platform:
+                    $ref: '#/components/schemas/Platform'
+                  artifactType:
+                    type: string
+        subject:
+          $ref: '#/components/schemas/Descriptor'
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+      example:
+        schemaVersion: 2
+        mediaType: application/vnd.oci.image.index.v1+json
+        manifests:
+          - mediaType: application/vnd.oci.image.manifest.v1+json
+            size: 1234
+            digest: sha256:abc123...
+            platform:
+              architecture: amd64
+              os: linux
+
+    Descriptor:
+      type: object
+      required:
+        - mediaType
+        - size
+        - digest
+      properties:
+        mediaType:
+          type: string
+          example: application/vnd.oci.image.layer.v1.tar+gzip
+        size:
+          type: integer
+          format: int64
+          example: 1048576
+        digest:
+          type: string
+          pattern: '^(sha256|sha512):[a-f0-9]{64,128}$'
+          example: sha256:abc123...
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        data:
+          type: string
+          format: byte
+          description: Embedded data (base64)
+
+    Platform:
+      type: object
+      required:
+        - architecture
+        - os
+      properties:
+        architecture:
+          type: string
+          enum: [amd64, arm64, arm, ppc64le, s390x, 386, riscv64]
+          example: amd64
+        os:
+          type: string
+          enum: [linux, windows, darwin, freebsd]
+          example: linux
+        os.version:
+          type: string
+        os.features:
+          type: array
+          items:
+            type: string
+        variant:
+          type: string
+          example: v8
+
+    ErrorResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            - BLOB_UNKNOWN
+            - BLOB_UPLOAD_INVALID
+            - BLOB_UPLOAD_UNKNOWN
+            - DIGEST_INVALID
+            - MANIFEST_BLOB_UNKNOWN
+            - MANIFEST_INVALID
+            - MANIFEST_UNKNOWN
+            - NAME_INVALID
+            - NAME_UNKNOWN
+            - SIZE_INVALID
+            - UNAUTHORIZED
+            - DENIED
+            - UNSUPPORTED
+          description: OCI error code
+        message:
+          type: string
+          description: Human-readable error message
+        detail:
+          type: object
+          additionalProperties: true
+          description: Additional error context
+      example:
+        code: BLOB_UNKNOWN
+        message: Blob not found in repository
+        detail:
+          digest: sha256:abc123...
+          repository: library/ubuntu
+
+  responses:
+    BadRequest:
+      description: Bad request (invalid parameters)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+            example: Bearer realm="https://auth.example.com/token"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BlobNotFound:
+      description: Blob not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            errors:
+              - code: BLOB_UNKNOWN
+                message: Blob not found in repository
+
+    ManifestNotFound:
+      description: Manifest not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            errors:
+              - code: MANIFEST_UNKNOWN
+                message: Manifest not found
+
+    UploadNotFound:
+      description: Upload session not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            errors:
+              - code: BLOB_UPLOAD_UNKNOWN
+                message: Upload session not found

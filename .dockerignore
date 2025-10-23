@@ -1,0 +1,36 @@
+# Git
+.git/
+.gitignore
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+pom.xml
+
+# Source
+src/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env*
+
+# Documentation
+*.md
+specs/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# OS
+.DS_Store
+Thumbs.db
