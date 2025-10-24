@@ -77,7 +77,7 @@ Single Java project structure:
 
 **Goal**: Enable Docker/ORAS clients to push container images to jreg, including blobs (layers) and manifests with tag support
 
-**Independent Test**: Build local image with `docker build -t localhost:8080/myrepo/test:v1 .` and push with `docker push localhost:8080/myrepo/test:v1`. Success means all layers upload, manifest stores, and tag points to manifest.
+**Independent Test**: Build local image with `docker build -t localhost:5000/myrepo/test:v1 .` and push with `docker push localhost:5000/myrepo/test:v1`. Success means all layers upload, manifest stores, and tag points to manifest.
 
 ### Tests for User Story 1 - Write FIRST, ensure FAIL before implementation
 
@@ -127,7 +127,7 @@ Single Java project structure:
 
 **Goal**: Enable Docker/ORAS clients to pull container images from jreg, supporting multi-arch indexes and HTTP Range requests
 
-**Independent Test**: After pushing test images via US1, run `docker pull localhost:8080/myrepo/test:v1` and verify image downloads successfully and can run as container.
+**Independent Test**: After pushing test images via US1, run `docker pull localhost:5000/myrepo/test:v1` and verify image downloads successfully and can run as container.
 
 ### Tests for User Story 2 - Write FIRST, ensure FAIL before implementation
 
@@ -380,7 +380,7 @@ mvn test
 4. **STOP and VALIDATE**: 
    - Build: `mvn clean package`
    - Run: `java -jar target/jreg-*.jar --spring.profiles.active=local`
-   - Test: `docker push localhost:8080/myrepo/test:latest`
+   - Test: `docker push localhost:5000/myrepo/test:latest`
    - Success: Image layers and manifest stored in S3, metrics visible at /actuator/prometheus
 5. **Deploy/Demo MVP**: Single-story registry (push-only) is production-ready
 

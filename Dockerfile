@@ -10,7 +10,7 @@ WORKDIR /app
 COPY target/jreg-*.jar /app/jreg.jar
 
 # Expose the application port
-EXPOSE 8080
+EXPOSE 5000
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "/app/jreg.jar"]

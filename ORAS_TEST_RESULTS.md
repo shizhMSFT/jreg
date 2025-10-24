@@ -3,7 +3,7 @@
 **Date:** October 24, 2025  
 **ORAS Version:** 1.3.0  
 **Registry:** jreg 1.0.0-SNAPSHOT  
-**Endpoint:** http://localhost:8080
+**Endpoint:** http://localhost:5000
 
 ## Test Summary
 
@@ -95,27 +95,27 @@ $ oras push localhost:5000/testapp:latest latest.txt --plain-http
 
 ### 9. Attach Referrers ✅
 ```bash
-$ oras attach localhost:8080/referrers-test:v1.0 --artifact-type application/vnd.example.signature.v1 signature.txt --plain-http
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.signature.v1 signature.txt --plain-http
 ✓ Uploaded  signature.txt (16B)
 ✓ Exists    application/vnd.oci.empty.v1+json (2B)
 ✓ Uploaded  application/vnd.oci.image.manifest.v1+json (756B)
-Attached to [registry] localhost:8080/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
+Attached to [registry] localhost:5000/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
 ```
 
 **Result:** ✅ Success - Referrer artifact attached with subject relationship
 
 ### 10. Multiple Referrers ✅
 ```bash
-$ oras attach localhost:8080/referrers-test:v1.0 --artifact-type application/vnd.example.sbom.v1 sbom.txt --plain-http
-$ oras attach localhost:8080/referrers-test:v1.0 --artifact-type application/vnd.example.attestation.v1 attestation.txt --plain-http
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.sbom.v1 sbom.txt --plain-http
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.attestation.v1 attestation.txt --plain-http
 ```
 
 **Result:** ✅ Success - Multiple referrers can be attached to a single subject
 
 ### 11. Discover Referrers ✅
 ```bash
-$ oras discover localhost:8080/referrers-test:v1.0 --plain-http
-localhost:8080/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
+$ oras discover localhost:5000/referrers-test:v1.0 --plain-http
+localhost:5000/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
 ├── application/vnd.example.signature.v1
 │   └── sha256:9e70f78d658517f4ae48543771e9f006f53eaeea67bbce1210adf1b32f6c1c03
 ├── application/vnd.example.sbom.v1
@@ -128,7 +128,7 @@ localhost:8080/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f
 
 ### 12. Filter Referrers by Type ✅
 ```bash
-$ curl "http://localhost:8080/v2/referrers-test/referrers/sha256:5becc...?artifactType=application/vnd.example.signature.v1"
+$ curl "http://localhost:5000/v2/referrers-test/referrers/sha256:5becc...?artifactType=application/vnd.example.signature.v1"
 {
   "schemaVersion": 2,
   "mediaType": "application/vnd.oci.image.index.v1+json",
@@ -147,11 +147,11 @@ $ curl "http://localhost:8080/v2/referrers-test/referrers/sha256:5becc...?artifa
 
 ### 13. Delete Referrer ✅
 ```bash
-$ oras manifest delete localhost:8080/deletetest@sha256:47d58914... --plain-http --force
-Deleted [registry] localhost:8080/deletetest@sha256:47d58914...
+$ oras manifest delete localhost:5000/deletetest@sha256:47d58914... --plain-http --force
+Deleted [registry] localhost:5000/deletetest@sha256:47d58914...
 
-$ oras discover localhost:8080/deletetest:v1.0 --plain-http
-localhost:8080/deletetest@sha256:5704f567...
+$ oras discover localhost:5000/deletetest:v1.0 --plain-http
+localhost:5000/deletetest@sha256:5704f567...
 └── application/sig.v1
     └── sha256:ec15419a...  # Only remaining referrer shown
 ```
@@ -160,7 +160,7 @@ localhost:8080/deletetest@sha256:5704f567...
 
 ### 14. HEAD Request with Content-Length ✅
 ```bash
-$ curl -I http://localhost:8080/v2/testapp/blobs/sha256:44136fa...
+$ curl -I http://localhost:5000/v2/testapp/blobs/sha256:44136fa...
 HTTP/1.1 200
 Content-Length: 2
 Content-Type: application/octet-stream

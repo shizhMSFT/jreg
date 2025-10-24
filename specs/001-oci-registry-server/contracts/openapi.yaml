@@ -22,7 +22,7 @@ info:
     name: MIT
 
 servers:
-  - url: http://localhost:8080/v2
+  - url: http://localhost:5000/v2
     description: Local development server
   - url: https://registry.example.com/v2
     description: Production server
