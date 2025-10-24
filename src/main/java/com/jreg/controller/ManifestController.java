@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -116,9 +118,10 @@ public class ManifestController {
             method = RequestMethod.HEAD,
             path = "/{name:.+}/manifests/{reference}"
     )
-    public ResponseEntity<Void> checkManifestExists(
+    public void checkManifestExists(
             @PathVariable("name") String repository,
-            @PathVariable String reference) {
+            @PathVariable String reference,
+            HttpServletResponse response) throws IOException {
         
         try {
             Manifest manifest;
@@ -131,14 +134,13 @@ public class ManifestController {
                 manifest = manifestService.getManifestByTag(repository, reference, tagService);
             }
             
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_TYPE, manifest.getMediaType())
-                    .header("Docker-Content-Digest", manifest.getDigest().toString())
-                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(manifest.getSize()))
-                    .build();
+            response.setStatus(HttpStatus.OK.value());
+            response.setHeader(HttpHeaders.CONTENT_TYPE, manifest.getMediaType());
+            response.setHeader("Docker-Content-Digest", manifest.getDigest().toString());
+            response.setHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(manifest.getSize()));
                     
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
         }
     }
 

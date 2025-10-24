@@ -21,6 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "Location",
                         "Range",
                         "Content-Range",
+                        "Content-Length",
+                        "Content-Type",
                         "Link",
                         "OCI-Subject",
                         "OCI-Filters-Applied"
@@ -28,9 +30,11 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void configurePathMatch(PathMatchConfigurer configurer) {
         // Disable PathPatternParser to use AntPathMatcher which supports {name:.+} regex
         configurer.setPatternParser(null);
+        // Note: setUseTrailingSlashMatch is deprecated in Spring 6.0+ but still functional
         configurer.setUseTrailingSlashMatch(true);
     }
 }

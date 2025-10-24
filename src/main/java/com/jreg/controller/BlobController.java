@@ -6,12 +6,14 @@ import com.jreg.model.Blob;
 import com.jreg.model.Digest;
 import com.jreg.service.BlobService;
 import com.jreg.storage.StorageBackend;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -38,9 +40,10 @@ public class BlobController {
             method = RequestMethod.HEAD,
             path = "/{name:.+}/blobs/{digest}"
     )
-    public ResponseEntity<Void> checkBlobExists(
+    public void checkBlobExists(
             @PathVariable("name") String repository,
-            @PathVariable("digest") String digestStr) {
+            @PathVariable("digest") String digestStr,
+            HttpServletResponse response) throws IOException {
         
         try {
             Digest digest = Digest.parse(digestStr);
@@ -51,14 +54,13 @@ public class BlobController {
             
             Blob blob = blobService.getBlobMetadata(repository, digest);
             
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(blob.getSize()))
-                    .header(HttpHeaders.CONTENT_TYPE, blob.getMediaType())
-                    .header("Docker-Content-Digest", digest.toString())
-                    .build();
+            response.setStatus(HttpStatus.OK.value());
+            response.setHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(blob.getSize()));
+            response.setHeader(HttpHeaders.CONTENT_TYPE, blob.getMediaType());
+            response.setHeader("Docker-Content-Digest", digest.toString());
                     
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
         }
     }
 
@@ -194,34 +196,35 @@ public class BlobController {
             path = "/{name:.+}/blobs/{digest}",
             params = "mount"
     )
-    public ResponseEntity<Void> checkBlobForMount(
+    public void checkBlobForMount(
             @PathVariable("name") String repository,
             @PathVariable("digest") String digestStr,
             @RequestParam("mount") String mountDigest,
-            @RequestParam("from") String fromRepository) {
+            @RequestParam("from") String fromRepository,
+            HttpServletResponse response) throws IOException {
         
         try {
             Digest mountDigestParsed = Digest.parse(mountDigest);
             
             // Check if blob exists in source repository
             if (!blobService.blobExists(fromRepository, mountDigestParsed)) {
-                return ResponseEntity.notFound().build();
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+                return;
             }
             
             // Mount blob to target repository
             boolean mounted = blobService.mountBlob(fromRepository, repository, mountDigestParsed);
             
             if (mounted) {
-                return ResponseEntity.status(HttpStatus.CREATED)
-                        .header(HttpHeaders.LOCATION, "/v2/" + repository + "/blobs/" + mountDigest)
-                        .header("Docker-Content-Digest", mountDigest)
-                        .build();
+                response.setStatus(HttpStatus.CREATED.value());
+                response.setHeader(HttpHeaders.LOCATION, "/v2/" + repository + "/blobs/" + mountDigest);
+                response.setHeader("Docker-Content-Digest", mountDigest);
             } else {
-                return ResponseEntity.notFound().build();
+                response.setStatus(HttpStatus.NOT_FOUND.value());
             }
             
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
         }
     }
 }
