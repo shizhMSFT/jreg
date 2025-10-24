@@ -84,4 +84,4 @@ When multi-segment support is implemented:
 2. All existing single-segment tests still pass
 3. Add new tests with multi-segment names
 4. Update documentation to remove limitation notice
-5. Verify with `docker push localhost:8080/myorg/myapp:latest`
+5. Verify with `docker push localhost:5000/myorg/myapp:latest`

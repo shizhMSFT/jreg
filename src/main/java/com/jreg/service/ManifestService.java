@@ -165,6 +165,22 @@ public class ManifestService {
             throw new ManifestNotFoundException(repository, digest);
         }
         
+        // Check if this manifest has a subject (is a referrer)
+        // If so, remove it from the subject's referrers index
+        try (InputStream is = storage.getObject(key)) {
+            byte[] manifestData = is.readAllBytes();
+            JsonNode manifestJson = objectMapper.readTree(manifestData);
+            
+            if (manifestJson.has("subject")) {
+                JsonNode subject = manifestJson.get("subject");
+                String subjectDigestStr = subject.get("digest").asText();
+                Digest subjectDigest = Digest.parse(subjectDigestStr);
+                removeFromReferrersIndex(repository, subjectDigest, digest);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to check/update referrers index during deletion: {}", e.getMessage());
+        }
+        
         storage.deleteObject(key);
         
         MDC.put("repository", repository);
@@ -329,6 +345,57 @@ public class ManifestService {
             
         } catch (Exception e) {
             logger.error("Failed to update referrers index: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Remove a referrer from the referrers index when the referrer manifest is deleted
+     */
+    private void removeFromReferrersIndex(String repository, Digest subjectDigest, Digest referrerDigest) {
+        String referrersKey = S3KeyGenerator.referrersKey(repository, subjectDigest);
+        
+        if (!storage.objectExists(referrersKey)) {
+            return; // No referrers index to update
+        }
+        
+        try {
+            // Load existing referrers index
+            JsonNode referrersIndex;
+            try (InputStream is = storage.getObject(referrersKey)) {
+                referrersIndex = objectMapper.readTree(is);
+            }
+            
+            // Remove the referrer from the manifests array
+            var manifestsArray = (com.fasterxml.jackson.databind.node.ArrayNode) referrersIndex.get("manifests");
+            String referrerDigestStr = referrerDigest.toString();
+            
+            var newManifestsArray = objectMapper.createArrayNode();
+            boolean removed = false;
+            for (JsonNode descriptor : manifestsArray) {
+                if (!descriptor.get("digest").asText().equals(referrerDigestStr)) {
+                    newManifestsArray.add(descriptor);
+                } else {
+                    removed = true;
+                }
+            }
+            
+            if (removed) {
+                ((com.fasterxml.jackson.databind.node.ObjectNode) referrersIndex).set("manifests", newManifestsArray);
+                
+                // Store updated index
+                byte[] updatedIndex = objectMapper.writeValueAsBytes(referrersIndex);
+                storage.putObject(
+                        referrersKey,
+                        new ByteArrayInputStream(updatedIndex),
+                        updatedIndex.length,
+                        "application/vnd.oci.image.index.v1+json"
+                );
+                
+                logger.debug("Removed referrer {} from referrers index for {}", referrerDigest, subjectDigest);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Failed to remove from referrers index: {}", e.getMessage(), e);
         }
     }
 }

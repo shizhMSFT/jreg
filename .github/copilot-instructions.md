@@ -43,12 +43,15 @@ When modifying Java code, you MUST follow this sequence:
 **DO NOT rely on Spring DevTools auto-reload** - it may fail with ClassNotFoundException. Always stop and restart after code changes.
 
 ### Testing with ORAS
-- **Check registry**: `curl http://localhost:8080/v2/`
-- **Push artifact**: `oras push localhost:8080/<repo>:<tag> <file> --plain-http`
-- **Pull artifact**: `oras pull localhost:8080/<repo>:<tag> --plain-http -o <output-dir>`
-- **List tags**: `oras repo tags localhost:8080/<repo> --plain-http`
-- **Fetch manifest**: `oras manifest fetch localhost:8080/<repo>:<tag> --plain-http`
-- **Delete manifest**: `oras manifest delete localhost:8080/<repo>:<tag> --plain-http --force`
+- **Check registry**: `curl http://localhost:5000/v2/`
+- **Push artifact**: `oras push localhost:5000/<repo>:<tag> <file> --plain-http`
+- **Pull artifact**: `oras pull localhost:5000/<repo>:<tag> --plain-http -o <output-dir>`
+- **List tags**: `oras repo tags localhost:5000/<repo> --plain-http`
+- **Fetch manifest**: `oras manifest fetch localhost:5000/<repo>:<tag> --plain-http`
+- **Delete manifest**: `oras manifest delete localhost:5000/<repo>:<tag> --plain-http --force`
+- **Attach referrer**: `oras attach localhost:5000/<repo>:<tag> --artifact-type <type> <file> --plain-http`
+- **Discover referrers**: `oras discover localhost:5000/<repo>:<tag> --plain-http`
+- **Delete referrer**: `oras manifest delete localhost:5000/<repo>@<digest> --plain-http --force`
 
 ## Code Style
 

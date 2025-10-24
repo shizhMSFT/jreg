@@ -1,13 +1,13 @@
 # ORAS CLI Testing Results
 
-**Date:** October 23, 2025  
+**Date:** October 24, 2025  
 **ORAS Version:** 1.3.0  
 **Registry:** jreg 1.0.0-SNAPSHOT  
 **Endpoint:** http://localhost:5000
 
 ## Test Summary
 
-✅ **All core OCI operations working correctly with ORAS CLI**
+✅ **All core OCI operations working correctly with ORAS CLI, including OCI Referrers API**
 
 ## Tests Performed
 
@@ -93,6 +93,82 @@ $ oras push localhost:5000/testapp:latest latest.txt --plain-http
 
 **Result:** ✅ Success - Multiple independent repositories working
 
+### 9. Attach Referrers ✅
+```bash
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.signature.v1 signature.txt --plain-http
+✓ Uploaded  signature.txt (16B)
+✓ Exists    application/vnd.oci.empty.v1+json (2B)
+✓ Uploaded  application/vnd.oci.image.manifest.v1+json (756B)
+Attached to [registry] localhost:5000/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
+```
+
+**Result:** ✅ Success - Referrer artifact attached with subject relationship
+
+### 10. Multiple Referrers ✅
+```bash
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.sbom.v1 sbom.txt --plain-http
+$ oras attach localhost:5000/referrers-test:v1.0 --artifact-type application/vnd.example.attestation.v1 attestation.txt --plain-http
+```
+
+**Result:** ✅ Success - Multiple referrers can be attached to a single subject
+
+### 11. Discover Referrers ✅
+```bash
+$ oras discover localhost:5000/referrers-test:v1.0 --plain-http
+localhost:5000/referrers-test@sha256:5becc8a0e88476e41e5f24f6fe5c2f1fac2cf1a723f22fdfb14397d973560937
+├── application/vnd.example.signature.v1
+│   └── sha256:9e70f78d658517f4ae48543771e9f006f53eaeea67bbce1210adf1b32f6c1c03
+├── application/vnd.example.sbom.v1
+│   └── sha256:de3235e34a57ee45224addb0fbeddb367fbe3dd02b7cdf21e2e6d39042e61dd0
+└── application/vnd.example.attestation.v1
+    └── sha256:0e3d643c9c7d0b9a137136996eacaeb282266ed4271355e6fff79834824038be
+```
+
+**Result:** ✅ Success - All referrers discovered and displayed in tree format
+
+### 12. Filter Referrers by Type ✅
+```bash
+$ curl "http://localhost:5000/v2/referrers-test/referrers/sha256:5becc...?artifactType=application/vnd.example.signature.v1"
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.index.v1+json",
+  "manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:9e70f78...",
+      "size": 756,
+      "artifactType": "application/vnd.example.signature.v1"
+    }
+  ]
+}
+```
+
+**Result:** ✅ Success - Referrers API correctly filters by artifactType query parameter
+
+### 13. Delete Referrer ✅
+```bash
+$ oras manifest delete localhost:5000/deletetest@sha256:47d58914... --plain-http --force
+Deleted [registry] localhost:5000/deletetest@sha256:47d58914...
+
+$ oras discover localhost:5000/deletetest:v1.0 --plain-http
+localhost:5000/deletetest@sha256:5704f567...
+└── application/sig.v1
+    └── sha256:ec15419a...  # Only remaining referrer shown
+```
+
+**Result:** ✅ Success - Deleted referrer automatically removed from subject's referrers index
+
+### 14. HEAD Request with Content-Length ✅
+```bash
+$ curl -I http://localhost:5000/v2/testapp/blobs/sha256:44136fa...
+HTTP/1.1 200
+Content-Length: 2
+Content-Type: application/octet-stream
+Docker-Content-Digest: sha256:44136fa...
+```
+
+**Result:** ✅ Success - HEAD requests properly include Content-Length header (required by OCI spec)
+
 ## Observability Features Verified
 
 ### Request/Response Logging ✅
@@ -117,14 +193,16 @@ The registry demonstrates compliance with OCI Distribution Spec v1.1.0:
 
 | Operation | Endpoint | Status |
 |-----------|----------|--------|
-| Check blob existence | `HEAD /v2/{name}/blobs/{digest}` | ✅ Working |
+| Check blob existence | `HEAD /v2/{name}/blobs/{digest}` | ✅ Working (with Content-Length) |
 | Upload blob | `POST /v2/{name}/blobs/uploads/` | ✅ Working |
 | Complete upload | `PUT /v2/{name}/blobs/uploads/{uuid}` | ✅ Working |
 | Push manifest | `PUT /v2/{name}/manifests/{reference}` | ✅ Working |
 | Pull manifest | `GET /v2/{name}/manifests/{reference}` | ✅ Working |
 | List tags | `GET /v2/{name}/tags/list` | ✅ Working |
 | Delete manifest | `DELETE /v2/{name}/manifests/{reference}` | ✅ Working |
+| Referrers API | `GET /v2/{name}/referrers/{digest}` | ✅ Working (with filtering) |
 | Blob deduplication | Multiple repos sharing blobs | ✅ Working |
+| Referrer index cleanup | Auto-cleanup on referrer deletion | ✅ Working |
 
 ## Known Limitations
 
@@ -140,10 +218,11 @@ The registry demonstrates compliance with OCI Distribution Spec v1.1.0:
 
 ## Performance Observations
 
-- **Blob deduplication:** Config layer (2B) was automatically reused across v1.0 and v2.0 pushes
-- **Upload speed:** Small artifacts (16-23B) uploaded in 40-49ms including digest verification
-- **Response times:** Most operations complete in 1-40ms (fast in-memory S3 backend)
+- **Blob deduplication:** Config layer (2B) was automatically reused across v1.0 and v2.0 pushes, and across different repositories
+- **Upload speed:** Small artifacts (7-31B) uploaded in 40-170ms including digest verification
+- **Response times:** Most operations complete in 1-80ms (fast in-memory S3 backend)
 - **No slow requests:** All requests completed under 200ms threshold (no slow request warnings)
+- **Referrers index updates:** Real-time updates when referrers are added or deleted
 
 ## Next Steps
 
@@ -157,6 +236,6 @@ Based on successful ORAS testing:
 
 ## Conclusion
 
-The jreg OCI registry implementation successfully passes real-world testing with the ORAS CLI. All core operations (push, pull, list, delete) work correctly, and the production observability features (request logging, duration tracking, error handling) are functioning as designed.
+The jreg OCI registry implementation successfully passes comprehensive real-world testing with the ORAS CLI. All core operations (push, pull, list, delete) work correctly, the OCI Referrers API is fully functional with automatic index management, and the production observability features (request logging, duration tracking, error handling) are functioning as designed.
 
 **Status:** ✅ Ready for Phase 7 continuation (performance optimization and documentation)
