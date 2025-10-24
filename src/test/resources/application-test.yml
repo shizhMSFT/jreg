@@ -5,11 +5,7 @@ spring:
 azure:
   storage:
     container-name: jreg-test-registry
-    connection-string: UseDevelopmentStorage=true
-    endpoint: http://localhost:4566
-    region: us-east-1
-    access-key: test
-    secret-key: test
+    connection-string: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
 
 logging:
   level:
