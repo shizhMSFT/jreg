@@ -14,10 +14,10 @@ server:
   port: 5000
   forward-headers-strategy: framework
 
-aws:
-  s3:
-    bucket-name: jreg-registry
-    region: us-east-1
+azure:
+  storage:
+    container-name: jreg-registry
+    endpoint: https://${AZURE_STORAGE_ACCOUNT_NAME:jreg}.blob.core.windows.net
 
 logging:
   level:

@@ -20,9 +20,20 @@
     
     <properties>
         <java.version>21</java.version>
-        <aws-sdk.version>2.21.0</aws-sdk.version>
         <testcontainers.version>1.21.0</testcontainers.version>
     </properties>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>1.2.36</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     
     <dependencies>
         <!-- Spring Boot Web -->
@@ -45,11 +56,23 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- AWS SDK for S3 -->
+        <!-- Azure Blob Storage -->
         <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3</artifactId>
-            <version>${aws-sdk.version}</version>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+        </dependency>
+        
+        <!-- Azure Blob Storage Batch -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob-batch</artifactId>
+        </dependency>
+        
+        <!-- Azure Identity -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>1.16.3</version>
         </dependency>
         
         <!-- Jackson for JSON processing -->

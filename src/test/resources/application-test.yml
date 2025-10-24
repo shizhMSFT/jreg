@@ -1,10 +1,11 @@
 spring:
   application:
-    name: jreg-test
+    name: jreg
 
-aws:
-  s3:
-    bucket-name: jreg-test-registry
+azure:
+  storage:
+    container-name: jreg-test-registry
+    connection-string: UseDevelopmentStorage=true
     endpoint: http://localhost:4566
     region: us-east-1
     access-key: test

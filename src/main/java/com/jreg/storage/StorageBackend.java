@@ -1,16 +1,12 @@
 package com.jreg.storage;
 
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.core.sync.ResponseTransformer;
-import software.amazon.awssdk.services.s3.model.*;
-
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Interface for storage backend operations.
- * Abstracts the underlying storage implementation (S3, filesystem, etc.)
+ * Abstracts the underlying storage implementation (Blob Storage, filesystem, etc.)
  */
 public interface StorageBackend {
     
