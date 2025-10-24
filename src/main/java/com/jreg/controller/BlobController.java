@@ -138,11 +138,11 @@ public class BlobController {
         }
         
         long contentLength = rangeEnd - rangeStart + 1;
-        String s3Range = "bytes=" + rangeStart + "-" + rangeEnd;
+        String rangeSpec = "bytes=" + rangeStart + "-" + rangeEnd;
         
         try {
             String key = "blobs/" + digest.algorithm() + "/" + digest.hex().substring(0, 2) + "/" + digest.hex();
-            InputStream content = storage.getObjectRange(key, s3Range);
+            InputStream content = storage.getObjectRange(key, rangeSpec);
             
             return ResponseEntity.status(206) // Partial Content
                     .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(contentLength))

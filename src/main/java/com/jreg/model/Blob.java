@@ -10,17 +10,17 @@ public class Blob {
     private long size;
     private String mediaType;
     private Instant uploadedAt;
-    private String s3Key;
+    private String blobName;
 
     public Blob() {
     }
 
-    public Blob(Digest digest, long size, String mediaType, String s3Key) {
+    public Blob(Digest digest, long size, String mediaType, String blobName) {
         this.digest = digest;
         this.size = size;
         this.mediaType = mediaType;
         this.uploadedAt = Instant.now();
-        this.s3Key = s3Key;
+        this.blobName = blobName;
     }
 
     public Digest getDigest() {
@@ -55,11 +55,11 @@ public class Blob {
         this.uploadedAt = uploadedAt;
     }
 
-    public String getS3Key() {
-        return s3Key;
+    public String getBlobName() {
+        return blobName;
     }
 
-    public void setS3Key(String s3Key) {
-        this.s3Key = s3Key;
+    public void setBlobName(String blobName) {
+        this.blobName = blobName;
     }
 }

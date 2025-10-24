@@ -16,7 +16,7 @@ public class UploadSession {
     private Instant createdAt;
     private Instant lastActivityAt;
     private String contentType;
-    private String s3UploadId; // For S3 multipart upload
+    private String uploadId; // For Azure block blob upload
 
     public UploadSession() {
         this.uploadedRanges = new ArrayList<>();
@@ -91,12 +91,12 @@ public class UploadSession {
         this.contentType = contentType;
     }
 
-    public String getS3UploadId() {
-        return s3UploadId;
+    public String getUploadId() {
+        return uploadId;
     }
 
-    public void setS3UploadId(String s3UploadId) {
-        this.s3UploadId = s3UploadId;
+    public void setUploadId(String uploadId) {
+        this.uploadId = uploadId;
     }
 
     /**

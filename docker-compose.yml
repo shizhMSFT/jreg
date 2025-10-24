@@ -1,14 +1,12 @@
 version: '3.8'
 
 services:
-  localstack:
-    image: localstack/localstack:stable
-    container_name: jreg-localstack
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: jreg-azurite
     ports:
-      - "4566:4566"
-    environment:
-      - SERVICES=s3
-      - DEBUG=1
+      - "10000:10000"
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000"
 
 volumes:
-  localstack-data:
+  azurite-data:
