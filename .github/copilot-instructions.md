@@ -15,7 +15,40 @@ tests/
 
 ## Commands
 
-# Add commands for Java 21 (LTS) with virtual threads for high-concurrency performance
+### Build and Run
+- **Compile**: `mvn compile -q`
+- **Run application in background (PowerShell)**:
+  ```powershell
+  $job = Start-Job -ScriptBlock { Set-Location $PWD; $env:SPRING_PROFILES_ACTIVE="local"; mvn spring-boot:run 2>&1 }
+  Start-Sleep -Seconds 5  # Wait for startup
+  ```
+- **Check job status**: `Get-Job | Select-Object Id, State`
+- **View job logs**: `Receive-Job -Id <JobId> | Select-Object -Last 50`
+- **Stop and restart**:
+  ```powershell
+  Get-Job | Stop-Job; Get-Job | Remove-Job -Force
+  mvn compile -q  # If code was modified
+  $job = Start-Job -ScriptBlock { Set-Location $PWD; $env:SPRING_PROFILES_ACTIVE="local"; mvn spring-boot:run 2>&1 }
+  Start-Sleep -Seconds 5
+  ```
+
+### CRITICAL: Code Modification Workflow
+When modifying Java code, you MUST follow this sequence:
+1. **Edit the code** using appropriate tools
+2. **Compile**: `mvn compile -q`
+3. **Stop server**: `Get-Job | Stop-Job; Get-Job | Remove-Job -Force`
+4. **Restart server**: `$job = Start-Job -ScriptBlock { Set-Location $PWD; $env:SPRING_PROFILES_ACTIVE="local"; mvn spring-boot:run 2>&1 }; Start-Sleep -Seconds 5`
+5. **Test the changes**
+
+**DO NOT rely on Spring DevTools auto-reload** - it may fail with ClassNotFoundException. Always stop and restart after code changes.
+
+### Testing with ORAS
+- **Check registry**: `curl http://localhost:8080/v2/`
+- **Push artifact**: `oras push localhost:8080/<repo>:<tag> <file> --plain-http`
+- **Pull artifact**: `oras pull localhost:8080/<repo>:<tag> --plain-http -o <output-dir>`
+- **List tags**: `oras repo tags localhost:8080/<repo> --plain-http`
+- **Fetch manifest**: `oras manifest fetch localhost:8080/<repo>:<tag> --plain-http`
+- **Delete manifest**: `oras manifest delete localhost:8080/<repo>:<tag> --plain-http --force`
 
 ## Code Style
 
