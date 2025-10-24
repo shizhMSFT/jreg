@@ -67,7 +67,6 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob-batch</artifactId>
-            <version>12.24.1</version>
         </dependency>
         
         <!-- Azure Identity -->
