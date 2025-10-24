@@ -55,8 +55,8 @@ public class BlobController {
             Blob blob = blobService.getBlobMetadata(repository, digest);
             
             response.setStatus(HttpStatus.OK.value());
-            response.setHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(blob.getSize()));
-            response.setHeader(HttpHeaders.CONTENT_TYPE, blob.getMediaType());
+            response.setContentLengthLong(blob.getSize());
+            response.setContentType(blob.getMediaType());
             response.setHeader("Docker-Content-Digest", digest.toString());
                     
         } catch (IllegalArgumentException e) {

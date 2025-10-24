@@ -47,27 +47,35 @@ public class LoggingFilter extends OncePerRequestFilter {
         // Add request ID to response header
         response.setHeader(REQUEST_ID_HEADER, requestId);
         
-        // Wrap request/response for potential content inspection
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+        // For HEAD requests, don't wrap response to avoid Content-Length issues
+        boolean isHeadRequest = "HEAD".equalsIgnoreCase(request.getMethod());
         
         long startTime = System.currentTimeMillis();
         
         try {
             // Log incoming request
-            logRequest(wrappedRequest);
+            logRequest(request);
             
-            // Process the request
-            filterChain.doFilter(wrappedRequest, wrappedResponse);
+            if (isHeadRequest) {
+                // Process HEAD request without wrapping
+                filterChain.doFilter(request, response);
+            } else {
+                // Wrap request/response for potential content inspection
+                ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+                ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+                
+                // Process the request
+                filterChain.doFilter(wrappedRequest, wrappedResponse);
+                
+                // Copy cached response content to actual response
+                wrappedResponse.copyBodyToResponse();
+            }
             
         } finally {
             long duration = System.currentTimeMillis() - startTime;
             
             // Log response
-            logResponse(wrappedRequest, wrappedResponse, duration);
-            
-            // Copy cached response content to actual response
-            wrappedResponse.copyBodyToResponse();
+            logResponse(request, response, duration);
             
             // Clear MDC
             MDC.clear();
