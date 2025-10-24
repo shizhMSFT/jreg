@@ -69,7 +69,7 @@ public class ReferrersContractTest {
                 .andReturn().getResponse().getHeader("Docker-Content-Digest");
         
         // Push referrer manifest (signature)
-        String referrerManifest = String.format("""
+        String referrerManifest = """
             {
               "schemaVersion": 2,
               "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -92,7 +92,7 @@ public class ReferrersContractTest {
                 "size": 527
               }
             }
-            """, digestHeader);
+            """.formatted(digestHeader);
         
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "signature")
                 .contentType("application/vnd.oci.image.manifest.v1+json")
@@ -142,7 +142,7 @@ public class ReferrersContractTest {
                 .andReturn().getResponse().getHeader("Docker-Content-Digest");
         
         // Push signature referrer
-        String signatureManifest = String.format("""
+        String signatureManifest = """
             {
               "schemaVersion": 2,
               "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -165,7 +165,7 @@ public class ReferrersContractTest {
                 "size": 527
               }
             }
-            """, subjectDigest);
+            """.formatted(subjectDigest);
         
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "sig1")
                 .contentType("application/vnd.oci.image.manifest.v1+json")
@@ -173,7 +173,7 @@ public class ReferrersContractTest {
                 .andExpect(status().isCreated());
         
         // Push SBOM referrer
-        String sbomManifest = String.format("""
+        String sbomManifest = """
             {
               "schemaVersion": 2,
               "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -196,7 +196,7 @@ public class ReferrersContractTest {
                 "size": 527
               }
             }
-            """, subjectDigest);
+            """.formatted(subjectDigest);
         
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "sbom1")
                 .contentType("application/vnd.oci.image.manifest.v1+json")
@@ -242,7 +242,7 @@ public class ReferrersContractTest {
                 .andReturn().getResponse().getHeader("Docker-Content-Digest");
         
         // Push signature referrer
-        String signatureManifest = String.format("""
+        String signatureManifest = """
             {
               "schemaVersion": 2,
               "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -265,7 +265,7 @@ public class ReferrersContractTest {
                 "size": 527
               }
             }
-            """, subjectDigest);
+            """.formatted(subjectDigest);
         
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "sig1")
                 .contentType("application/vnd.oci.image.manifest.v1+json")
@@ -273,7 +273,7 @@ public class ReferrersContractTest {
                 .andExpect(status().isCreated());
         
         // Push SBOM referrer
-        String sbomManifest = String.format("""
+        String sbomManifest = """
             {
               "schemaVersion": 2,
               "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -296,7 +296,7 @@ public class ReferrersContractTest {
                 "size": 527
               }
             }
-            """, subjectDigest);
+            """.formatted(subjectDigest);
         
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "sbom1")
                 .contentType("application/vnd.oci.image.manifest.v1+json")

@@ -41,7 +41,7 @@ public class ManifestController {
     @PutMapping("/{name:.+}/manifests/{reference}")
     public ResponseEntity<Void> pushManifest(
             @PathVariable("name") String repository,
-            @PathVariable("reference") String reference,
+            @PathVariable String reference,
             @RequestHeader(value = HttpHeaders.CONTENT_TYPE) String contentType,
             HttpServletRequest request) {
         
@@ -84,7 +84,7 @@ public class ManifestController {
     @GetMapping("/{name:.+}/manifests/{reference}")
     public ResponseEntity<byte[]> pullManifest(
             @PathVariable("name") String repository,
-            @PathVariable("reference") String reference) {
+            @PathVariable String reference) {
         
         try {
             Manifest manifest;
@@ -118,7 +118,7 @@ public class ManifestController {
     )
     public ResponseEntity<Void> checkManifestExists(
             @PathVariable("name") String repository,
-            @PathVariable("reference") String reference) {
+            @PathVariable String reference) {
         
         try {
             Manifest manifest;
@@ -155,7 +155,7 @@ public class ManifestController {
     @DeleteMapping("/{name:.+}/manifests/{reference}")
     public ResponseEntity<Void> deleteManifest(
             @PathVariable("name") String repository,
-            @PathVariable("reference") String reference) {
+            @PathVariable String reference) {
         
         // Validate reference format
         if (!RegexValidator.isValidDigest(reference) && !RegexValidator.isValidTag(reference)) {
@@ -198,7 +198,7 @@ public class ManifestController {
     public ResponseEntity<Map<String, Object>> listTags(
             @PathVariable("name") String repository,
             @RequestParam(value = "n", required = false) Integer limit,
-            @RequestParam(value = "last", required = false) String last) {
+            @RequestParam(required = false) String last) {
         
         List<String> tags = tagService.listTags(repository);
         
@@ -228,7 +228,7 @@ public class ManifestController {
         
         // Add Link header if there are more results
         if (hasMore && lastTag != null) {
-            String linkHeader = String.format("</v2/%s/tags/list?n=%d&last=%s>; rel=\"next\"",
+            String linkHeader = "</v2/%s/tags/list?n=%d&last=%s>; rel=\"next\"".formatted(
                     repository, limit, lastTag);
             builder.header("Link", linkHeader);
         }
@@ -244,7 +244,7 @@ public class ManifestController {
     public ResponseEntity<String> listReferrers(
             @PathVariable("name") String repository,
             @PathVariable("digest") String digestStr,
-            @RequestParam(value = "artifactType", required = false) String artifactType) {
+            @RequestParam(required = false) String artifactType) {
         
         try {
             Digest subjectDigest = Digest.parse(digestStr);

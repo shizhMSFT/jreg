@@ -249,7 +249,7 @@ public class ManifestPushContractTest {
         // Push 5 tags
         for (int i = 1; i <= 5; i++) {
             // Use properly formatted 64-character hex digests
-            String configDigest = String.format("sha256:c%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc",
+            String configDigest = "sha256:c%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc%dc".formatted(
                     i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i, i);
             String manifest = createMinimalManifest(configDigest);
             mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "tag" + i)
@@ -292,7 +292,7 @@ public class ManifestPushContractTest {
                 .content(subjectManifest)).andExpect(status().isCreated());
 
         // Push referrer manifest (e.g., signature or SBOM)
-        String referrerManifest = String.format("""
+        String referrerManifest = """
                 {
                     "schemaVersion": 2,
                     "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -315,7 +315,7 @@ public class ManifestPushContractTest {
                         "size": 1000
                     }
                 }
-                """, subjectDigest);
+                """.formatted(subjectDigest);
 
         mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, "sbom-v1")
                 .contentType(IMAGE_MANIFEST_V2)
@@ -352,7 +352,7 @@ public class ManifestPushContractTest {
     }
 
     private String createMinimalManifest(String configDigest) {
-        return String.format("""
+        return """
                 {
                     "schemaVersion": 2,
                     "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -369,6 +369,6 @@ public class ManifestPushContractTest {
                         }
                     ]
                 }
-                """, configDigest);
+                """.formatted(configDigest);
     }
 }

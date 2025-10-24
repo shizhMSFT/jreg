@@ -48,7 +48,7 @@ public record ByteRange(long start, long end) {
      * Format as Content-Range header value
      */
     public String toContentRange(long totalSize) {
-        return String.format("bytes %d-%d/%d", start, end, totalSize);
+        return "bytes %d-%d/%d".formatted(start, end, totalSize);
     }
     
     /**

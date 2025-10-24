@@ -15,7 +15,7 @@ public class S3KeyGenerator {
     public static String blobKey(Digest digest) {
         String hex = digest.hex();
         String prefix = hex.substring(0, 2);
-        return String.format("blobs/%s/%s/%s", digest.algorithm(), prefix, hex);
+        return "blobs/%s/%s/%s".formatted(digest.algorithm(), prefix, hex);
     }
     
     /**
@@ -23,7 +23,7 @@ public class S3KeyGenerator {
      * Format: manifests/{repository}/{algorithm}/{digest}
      */
     public static String manifestKey(String repository, Digest digest) {
-        return String.format("manifests/%s/%s/%s", repository, digest.algorithm(), digest.hex());
+        return "manifests/%s/%s/%s".formatted(repository, digest.algorithm(), digest.hex());
     }
     
     /**
@@ -31,7 +31,7 @@ public class S3KeyGenerator {
      * Format: tags/{repository}/{tag-name}
      */
     public static String tagKey(String repository, String tagName) {
-        return String.format("tags/%s/%s", repository, tagName);
+        return "tags/%s/%s".formatted(repository, tagName);
     }
     
     /**
@@ -39,7 +39,7 @@ public class S3KeyGenerator {
      * Format: uploads/{session-id}/metadata.json
      */
     public static String uploadMetadataKey(String sessionId) {
-        return String.format("uploads/%s/metadata.json", sessionId);
+        return "uploads/%s/metadata.json".formatted(sessionId);
     }
     
     /**
@@ -47,7 +47,7 @@ public class S3KeyGenerator {
      * Format: uploads/{session-id}/chunks/{start}-{end}
      */
     public static String uploadChunkKey(String sessionId, long start, long end) {
-        return String.format("uploads/%s/chunks/%d-%d", sessionId, start, end);
+        return "uploads/%s/chunks/%d-%d".formatted(sessionId, start, end);
     }
     
     /**
@@ -55,7 +55,7 @@ public class S3KeyGenerator {
      * Format: referrers/{repository}/{algorithm}/{digest}.json
      */
     public static String referrersKey(String repository, Digest digest) {
-        return String.format("referrers/%s/%s/%s.json", repository, digest.algorithm(), digest.hex());
+        return "referrers/%s/%s/%s.json".formatted(repository, digest.algorithm(), digest.hex());
     }
     
     /**
@@ -63,7 +63,7 @@ public class S3KeyGenerator {
      * Format: tags/{repository}/
      */
     public static String tagListPrefix(String repository) {
-        return String.format("tags/%s/", repository);
+        return "tags/%s/".formatted(repository);
     }
     
     /**
@@ -71,6 +71,6 @@ public class S3KeyGenerator {
      * Format: manifests/{repository}/
      */
     public static String manifestListPrefix(String repository) {
-        return String.format("manifests/%s/", repository);
+        return "manifests/%s/".formatted(repository);
     }
 }

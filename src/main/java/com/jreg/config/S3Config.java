@@ -32,7 +32,7 @@ public class S3Config {
     private String secretKey;
 
     @Bean
-    public S3Client s3Client() {
+    S3Client s3Client() {
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(region));
 
@@ -57,7 +57,7 @@ public class S3Config {
     }
 
     @Bean
-    public String s3BucketName() {
+    String s3BucketName() {
         return bucketName;
     }
 }

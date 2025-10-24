@@ -104,7 +104,7 @@ public class TagListContractTest {
         
         // Push 10 tags
         for (int i = 1; i <= 10; i++) {
-            String tag = String.format("v%02d", i);
+            String tag = "v%02d".formatted(i);
             mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, tag)
                     .contentType("application/vnd.oci.image.manifest.v1+json")
                     .content(MANIFEST_CONTENT))
@@ -126,7 +126,7 @@ public class TagListContractTest {
         
         // Push 10 tags
         for (int i = 1; i <= 10; i++) {
-            String tag = String.format("tag%02d", i);
+            String tag = "tag%02d".formatted(i);
             mockMvc.perform(put("/v2/{name}/manifests/{reference}", repository, tag)
                     .contentType("application/vnd.oci.image.manifest.v1+json")
                     .content(MANIFEST_CONTENT))
