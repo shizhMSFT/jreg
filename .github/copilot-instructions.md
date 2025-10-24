@@ -49,6 +49,9 @@ When modifying Java code, you MUST follow this sequence:
 - **List tags**: `oras repo tags localhost:8080/<repo> --plain-http`
 - **Fetch manifest**: `oras manifest fetch localhost:8080/<repo>:<tag> --plain-http`
 - **Delete manifest**: `oras manifest delete localhost:8080/<repo>:<tag> --plain-http --force`
+- **Attach referrer**: `oras attach localhost:8080/<repo>:<tag> --artifact-type <type> <file> --plain-http`
+- **Discover referrers**: `oras discover localhost:8080/<repo>:<tag> --plain-http`
+- **Delete referrer**: `oras manifest delete localhost:8080/<repo>@<digest> --plain-http --force`
 
 ## Code Style
 
