@@ -11,7 +11,7 @@ spring:
     log-resolved-exception: true
 
 server:
-  port: 8080
+  port: 5000
   forward-headers-strategy: framework
 
 aws:

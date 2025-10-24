@@ -38,11 +38,11 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```bash
 # Push an image
 docker pull busybox:latest
-docker tag busybox:latest localhost:8080/myrepo/busybox:latest
-docker push localhost:8080/myrepo/busybox:latest
+docker tag busybox:latest localhost:5000/myrepo/busybox:latest
+docker push localhost:5000/myrepo/busybox:latest
 
 # Pull an image
-docker pull localhost:8080/myrepo/busybox:latest
+docker pull localhost:5000/myrepo/busybox:latest
 ```
 
 ## Documentation

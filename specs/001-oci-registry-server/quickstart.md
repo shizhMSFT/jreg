@@ -69,7 +69,7 @@ spring:
     name: jreg
 
 server:
-  port: 8080
+  port: 5000
 
 aws:
   s3:
@@ -108,19 +108,19 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 java -jar target/jreg-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
 ```
 
-The registry should start on `http://localhost:8080`.
+The registry should start on `http://localhost:5000`.
 
 ### 5. Verify Registry is Running
 
 ```bash
 # Check API version
-curl http://localhost:8080/v2/
+curl http://localhost:5000/v2/
 
 # Expected response:
 # {"version":"1.0.0"}
 
 # Check health endpoint
-curl http://localhost:8080/actuator/health
+curl http://localhost:5000/actuator/health
 
 # Expected response:
 # {"status":"UP"}
@@ -137,15 +137,15 @@ curl http://localhost:8080/actuator/health
 docker pull busybox:latest
 
 # Tag it for our local registry
-docker tag busybox:latest localhost:8080/myorg/busybox:latest
+docker tag busybox:latest localhost:5000/myorg/busybox:latest
 
 # Push to jreg
-docker push localhost:8080/myorg/busybox:latest
+docker push localhost:5000/myorg/busybox:latest
 ```
 
 Expected output:
 ```
-The push refers to repository [localhost:8080/myorg/busybox]
+The push refers to repository [localhost:5000/myorg/busybox]
 sha256:abc123...: Pushed
 latest: digest: sha256:def456... size: 1234
 ```
@@ -154,16 +154,16 @@ latest: digest: sha256:def456... size: 1234
 
 ```bash
 # Remove local copy
-docker rmi localhost:8080/myorg/busybox:latest
+docker rmi localhost:5000/myorg/busybox:latest
 
 # Pull from jreg
-docker pull localhost:8080/myorg/busybox:latest
+docker pull localhost:5000/myorg/busybox:latest
 ```
 
 ### List Tags
 
 ```bash
-curl http://localhost:8080/v2/myorg/busybox/tags/list
+curl http://localhost:5000/v2/myorg/busybox/tags/list
 ```
 
 Expected response:
@@ -202,14 +202,14 @@ choco install oras
 echo "Hello from jreg" > hello.txt
 
 # Push as OCI artifact
-oras push localhost:8080/myorg/artifacts:v1 hello.txt:text/plain
+oras push localhost:5000/myorg/artifacts:v1 hello.txt:text/plain
 ```
 
 ### Pull an Artifact
 
 ```bash
 # Pull and extract
-oras pull localhost:8080/myorg/artifacts:v1
+oras pull localhost:5000/myorg/artifacts:v1
 
 # Verify
 cat hello.txt
@@ -247,7 +247,7 @@ cd distribution-spec/conformance
 
 # Run against jreg
 go test -v -run TestPush ./... \
-  -registry=localhost:8080 \
+  -registry=localhost:5000 \
   -repository=conformance/test
 ```
 
@@ -354,7 +354,7 @@ Example log entry:
 View Prometheus metrics:
 
 ```bash
-curl http://localhost:8080/actuator/prometheus
+curl http://localhost:5000/actuator/prometheus
 ```
 
 Key metrics:
@@ -369,10 +369,10 @@ Key metrics:
 
 ```bash
 # Overall health
-curl http://localhost:8080/actuator/health
+curl http://localhost:5000/actuator/health
 
 # Detailed health (includes S3 connectivity)
-curl http://localhost:8080/actuator/health?details=true
+curl http://localhost:5000/actuator/health?details=true
 ```
 
 ---
@@ -412,10 +412,10 @@ aws --endpoint-url=http://localhost:4566 s3 rb s3://jreg-registry
 
 ```bash
 # Start the app, then:
-curl http://localhost:8080/v3/api-docs > openapi-generated.json
+curl http://localhost:5000/v3/api-docs > openapi-generated.json
 
 # Or view Swagger UI
-open http://localhost:8080/swagger-ui.html
+open http://localhost:5000/swagger-ui.html
 ```
 
 ---
@@ -424,12 +424,12 @@ open http://localhost:8080/swagger-ui.html
 
 ### Port Already in Use
 
-If port 8080 is busy:
+If port 5000 is busy:
 
 ```bash
 # Change port in application-local.yml
 server:
-  port: 8081
+  port: 5001
 
 # Or use environment variable
 SERVER_PORT=8081 mvn spring-boot:run
@@ -454,7 +454,7 @@ This usually means a referenced blob doesn't exist. Ensure layers are pushed bef
 
 ```bash
 # Check blob exists
-curl -I http://localhost:8080/v2/myorg/busybox/blobs/sha256:abc123...
+curl -I http://localhost:5000/v2/myorg/busybox/blobs/sha256:abc123...
 
 # Should return 200 OK
 ```
@@ -513,7 +513,7 @@ aws:
     # Use IAM role (no access-key/secret-key)
 
 server:
-  port: 8080
+  port: 5000
   forward-headers-strategy: framework  # Trust X-Forwarded-* headers
 
 logging:
