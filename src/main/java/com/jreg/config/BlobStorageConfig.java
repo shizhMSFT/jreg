@@ -33,7 +33,8 @@ public class BlobStorageConfig {
 
         // Override endpoint for local development with LocalStack
         if (!endpointOverride.isEmpty()) {
-            builder.endpointOverride(URI.create(endpointOverride));
+            builder.endpointOverride(URI.create(endpointOverride))
+                   .forcePathStyle(true);  // Enable path-style access for LocalStack
         }
 
         return builder.build();
