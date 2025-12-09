@@ -30,5 +30,5 @@
     </springProfile>
     
     <logger name="com.jreg" level="DEBUG"/>
-    <logger name="com.azure.storage" level="WARN"/>
+    <logger name="software.amazon.awssdk.services.s3" level="WARN"/>
 </configuration>
