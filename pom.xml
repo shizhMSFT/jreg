@@ -26,9 +26,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.azure</groupId>
-                <artifactId>azure-sdk-bom</artifactId>
-                <version>1.2.36</version>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.20.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -56,24 +56,16 @@
             <optional>true</optional>
         </dependency>
         
-        <!-- Azure Blob Storage -->
+        <!-- AWS SDK for S3 -->
         <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob</artifactId>
-            <version>12.28.1</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
         </dependency>
         
-        <!-- Azure Blob Storage Batch -->
+        <!-- AWS SDK for STS -->
         <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob-batch</artifactId>
-        </dependency>
-        
-        <!-- Azure Identity -->
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-identity</artifactId>
-            <version>1.16.3</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
         </dependency>
         
         <!-- Jackson for JSON processing -->
