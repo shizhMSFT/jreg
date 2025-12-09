@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Tracks state for chunked blob uploads.
+ * Tracks state for chunked S3 multipart uploads.
  */
 public class UploadSession {
     private UUID sessionId;
@@ -16,7 +16,7 @@ public class UploadSession {
     private Instant createdAt;
     private Instant lastActivityAt;
     private String contentType;
-    private String uploadId; // For Azure block blob upload
+    private String uploadId; // For AWS S3 multipart upload ID
 
     public UploadSession() {
         this.uploadedRanges = new ArrayList<>();
