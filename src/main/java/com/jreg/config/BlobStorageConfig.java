@@ -1,49 +1,47 @@
 package com.jreg.config;
 
-import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+
+import java.net.URI;
 
 /**
- * Configuration for Azure Blob Storage client.
+ * Configuration for AWS S3 client.
  */
 @Configuration
 public class BlobStorageConfig {
 
-    @Value("${azure.storage.container-name}")
-    private String containerName;
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
 
-    @Value("${azure.storage.endpoint:}")
-    private String endpoint;
+    @Value("${aws.s3.region}")
+    private String region;
 
-    @Value("${azure.storage.connection-string:}")
-    private String connectionString;
+    @Value("${aws.s3.endpoint-override:}")
+    private String endpointOverride;
 
     @Bean
-    BlobServiceClient blobServiceClient() {
-        BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
+    S3Client s3Client() {
+        S3ClientBuilder builder = S3Client.builder()
+                .region(Region.of(region))
+                .credentialsProvider(DefaultCredentialsProvider.create());
 
-        // Use connection string if provided (local development with Azurite)
-        if (!connectionString.isEmpty()) {
-            builder.connectionString(connectionString);
-        } else if (!endpoint.isEmpty()) {
-            // Use endpoint with DefaultAzureCredential for production
-            builder.endpoint(endpoint)
-                   .credential(new DefaultAzureCredentialBuilder().build());
-        } else {
-            throw new IllegalStateException(
-                "Azure Blob Storage configuration missing: Either azure.storage.connection-string or azure.storage.endpoint must be provided"
-            );
+        // Override endpoint for local development with LocalStack
+        if (!endpointOverride.isEmpty()) {
+            builder.endpointOverride(URI.create(endpointOverride));
         }
 
-        return builder.buildClient();
+        return builder.build();
     }
 
     @Bean
-    String blobContainerName() {
-        return containerName;
+    String bucketName() {
+        return bucketName;
     }
 }
+
