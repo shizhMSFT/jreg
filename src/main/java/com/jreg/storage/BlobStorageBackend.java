@@ -1,50 +1,52 @@
 package com.jreg.storage;
 
-import com.azure.core.http.rest.PagedResponse;
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.models.*;
-import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
- * Azure Blob Storage implementation of the storage backend.
+ * AWS S3 implementation of the storage backend.
  */
 @Component
 public class BlobStorageBackend implements StorageBackend {
     
     private static final Logger logger = LoggerFactory.getLogger(BlobStorageBackend.class);
     
-    private final String containerName;
-    private final BlobContainerClient containerClient;
+    private final String bucketName;
+    private final S3Client s3Client;
     
-    public BlobStorageBackend(BlobServiceClient blobServiceClient, String blobContainerName) {
-        this.containerName = blobContainerName;
-        this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
-        ensureContainerExists();
+    public BlobStorageBackend(S3Client s3Client, String bucketName) {
+        this.bucketName = bucketName;
+        this.s3Client = s3Client;
+        createBucketIfNotExists();
     }
     
-    private void ensureContainerExists() {
+    private void createBucketIfNotExists() {
         try {
-            if (containerClient.exists()) {
-                logger.info("Blob container exists: {}", containerName);
-            } else {
-                logger.info("Creating blob container: {}", containerName);
-                containerClient.create();
-            }
-        } catch (BlobStorageException e) {
-            if (e.getErrorCode() == BlobErrorCode.CONTAINER_ALREADY_EXISTS) {
-                logger.info("Blob container already exists: {}", containerName);
+            HeadBucketRequest headBucketRequest = HeadBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build();
+            s3Client.headBucket(headBucketRequest);
+            logger.info("S3 bucket exists: {}", bucketName);
+        } catch (NoSuchBucketException e) {
+            logger.info("Creating S3 bucket: {}", bucketName);
+            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build();
+            s3Client.createBucket(createBucketRequest);
+        } catch (S3Exception e) {
+            if (e.statusCode() == 409) {
+                // Bucket already exists and is owned by you
+                logger.info("S3 bucket already exists: {}", bucketName);
             } else {
                 throw e;
             }
@@ -53,40 +55,28 @@ public class BlobStorageBackend implements StorageBackend {
     
     @Override
     public InputStream getObject(String key) {
-        logger.debug("Getting blob: {}", key);
-        BlobClient blobClient = containerClient.getBlobClient(key);
-        return blobClient.downloadContent().toStream();
+        logger.debug("Getting S3 object: {}", key);
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        return s3Client.getObject(getObjectRequest, ResponseTransformer.toInputStream());
     }
     
     @Override
     public InputStream getObjectRange(String key, String range) {
-        logger.debug("Getting blob range: {} range={}", key, range);
-        BlobClient blobClient = containerClient.getBlobClient(key);
+        logger.debug("Getting S3 object range: {} range={}", key, range);
+        
+        GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key);
         
         // Parse range header: "bytes=start-end"
-        BlobRange blobRange = parseRange(range);
-        
-        BinaryData data = blobClient.downloadContentWithResponse(
-            null, null, blobRange, false, null, null
-        ).getValue();
-        
-        return data.toStream();
-    }
-    
-    private BlobRange parseRange(String range) {
-        // Parse "bytes=start-end" format
         if (range != null && range.startsWith("bytes=")) {
-            String[] parts = range.substring(6).split("-");
-            long start = Long.parseLong(parts[0]);
-            if (parts.length > 1 && !parts[1].isEmpty()) {
-                long end = Long.parseLong(parts[1]);
-                long count = end - start + 1;
-                return new BlobRange(start, count);
-            } else {
-                return new BlobRange(start);
-            }
+            requestBuilder.range(range);
         }
-        return null;
+        
+        return s3Client.getObject(requestBuilder.build(), ResponseTransformer.toInputStream());
     }
     
     @Override
@@ -96,96 +86,110 @@ public class BlobStorageBackend implements StorageBackend {
     
     @Override
     public void putObject(String key, InputStream content, long contentLength, String contentType) {
-        logger.debug("Putting blob: {} size={}", key, contentLength);
-        BlobClient blobClient = containerClient.getBlobClient(key);
+        logger.debug("Putting S3 object: {} size={}", key, contentLength);
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .contentLength(contentLength)
+                .build();
         
-        BlobHttpHeaders headers = new BlobHttpHeaders().setContentType(contentType);
-        BlobParallelUploadOptions options = new BlobParallelUploadOptions(content);
-        options.setHeaders(headers);
-        
-        blobClient.uploadWithResponse(options, null, null);
+        s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(content, contentLength));
     }
     
     @Override
     public void putObject(String key, byte[] content, String contentType, Map<String, String> metadata) {
-        logger.debug("Putting blob: {} size={} metadata={}", key, content.length, metadata);
-        BlobClient blobClient = containerClient.getBlobClient(key);
+        logger.debug("Putting S3 object: {} size={} metadata={}", key, content.length, metadata);
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .metadata(metadata)
+                .build();
         
-        BlobHttpHeaders headers = new BlobHttpHeaders().setContentType(contentType);
-        BlobParallelUploadOptions options = new BlobParallelUploadOptions(BinaryData.fromBytes(content));
-        options.setHeaders(headers);
-        options.setMetadata(metadata);
-        
-        blobClient.uploadWithResponse(options, null, null);
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(content));
     }
     
     @Override
     public boolean objectExists(String key) {
         try {
-            BlobClient blobClient = containerClient.getBlobClient(key);
-            return blobClient.exists();
-        } catch (BlobStorageException e) {
-            if (e.getErrorCode() == BlobErrorCode.BLOB_NOT_FOUND) {
-                return false;
-            }
-            throw e;
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            s3Client.headObject(headObjectRequest);
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
         }
     }
     
     @Override
     public Map<String, String> getObjectMetadata(String key) {
-        BlobClient blobClient = containerClient.getBlobClient(key);
-        BlobProperties properties = blobClient.getProperties();
-        return properties.getMetadata();
+        HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+        return response.metadata();
     }
     
     @Override
     public long getObjectSize(String key) {
-        BlobClient blobClient = containerClient.getBlobClient(key);
-        BlobProperties properties = blobClient.getProperties();
-        return properties.getBlobSize();
+        HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+        return response.contentLength();
     }
     
     @Override
     public void deleteObject(String key) {
-        logger.debug("Deleting blob: {}", key);
-        BlobClient blobClient = containerClient.getBlobClient(key);
-        blobClient.deleteIfExists();
+        logger.debug("Deleting S3 object: {}", key);
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        s3Client.deleteObject(deleteObjectRequest);
     }
     
     @Override
     public List<String> listObjects(String prefix) {
-        logger.debug("Listing blobs with prefix: {}", prefix);
-        ListBlobsOptions options = new ListBlobsOptions().setPrefix(prefix);
+        logger.debug("Listing S3 objects with prefix: {}", prefix);
+        ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(prefix)
+                .build();
         
-        return StreamSupport.stream(
-            containerClient.listBlobs(options, null).spliterator(), 
-            false
-        )
-        .map(BlobItem::getName)
-        .collect(Collectors.toList());
+        ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
+        return response.contents().stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
     }
     
     @Override
     public ListObjectsResult listObjects(String prefix, int maxKeys, String startAfter) {
-        logger.debug("Listing blobs with prefix: {} maxKeys={} startAfter={}", prefix, maxKeys, startAfter);
+        logger.debug("Listing S3 objects with prefix: {} maxKeys={} startAfter={}", prefix, maxKeys, startAfter);
         
-        ListBlobsOptions options = new ListBlobsOptions()
-                .setPrefix(prefix)
-                .setMaxResultsPerPage(maxKeys);
+        ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(prefix)
+                .maxKeys(maxKeys);
         
-        // Get the first page
-        Iterable<PagedResponse<BlobItem>> pages = containerClient.listBlobs(options, null).iterableByPage();
-        PagedResponse<BlobItem> firstPage = pages.iterator().next();
+        if (startAfter != null && !startAfter.isEmpty()) {
+            requestBuilder.startAfter(prefix + startAfter);
+        }
         
-        List<String> keys = StreamSupport.stream(firstPage.getValue().spliterator(), false)
-                .map(BlobItem::getName)
+        ListObjectsV2Response response = s3Client.listObjectsV2(requestBuilder.build());
+        
+        List<String> keys = response.contents().stream()
+                .map(S3Object::key)
                 .map(name -> name.substring(prefix.length())) // Remove prefix
                 .collect(Collectors.toList());
         
         // Check if there are more pages
-        String continuationToken = firstPage.getContinuationToken();
-        boolean isTruncated = continuationToken != null;
+        boolean isTruncated = response.isTruncated();
         String nextMarker = isTruncated && !keys.isEmpty() ? keys.get(keys.size() - 1) : null;
         
         return new ListObjectsResult(keys, nextMarker, isTruncated);
