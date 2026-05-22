@@ -1,0 +1,145 @@
+# jreg
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Issues | 10 |
+| Mandatory Blockers | 8 |
+| Potential Issues | 0 |
+
+## Application Information
+
+| Property | Value |
+|----------|-------|
+| Language | Java, Python |
+| Frameworks | Spring Boot, Spring |
+| Build tools | Maven |
+| JDK version | 21 |
+
+## Cloud Readiness Issues
+
+| Issue Name | Criticality | Story Points | Occurrences |
+|------------|-------------|--------------|-------------|
+| AWS S3 usage found | Mandatory | 8 | [10](#AWS_S3_usage_found) |
+| Use of unsecured network protocols or URI libraries | Mandatory | 3 | [3](#Use_of_unsecured_network_protocols_or_URI_libraries) |
+| AWS region configuration | Mandatory | 2 | [2](#AWS_region_configuration) |
+| CRA: Hard-coded credentials in configuration files | Mandatory | 5 | [2](#CRA_Hard-coded_credentials_in_configuration_files) |
+| AWS S3 dependency usage found | Mandatory | 8 | [1](#AWS_S3_dependency_usage_found) |
+| Local HTTP Calls | Mandatory | 3 | [1](#Local_HTTP_Calls) |
+| Avoid using hardcoded URLs (HTTP protocol) in source code | Optional | 3 | [5](#Avoid_using_hardcoded_URLs_HTTP_protocol_in_source_code) |
+
+### Issue Details
+
+<details id="AWS_S3_usage_found">
+<summary><b>AWS S3 usage found</b> — affected files</summary>
+
+- `src/test/resources/application-test.yml (line 6)`
+- `src/main/resources/application-local.yml (line 6)`
+- `src/main/resources/application.yml (line 18)`
+- `src/main/java/com/jreg/config/S3Config.java (line 11)`
+- `src/main/java/com/jreg/config/S3Config.java (line 12)`
+- `src/main/java/com/jreg/controller/HealthController.java (line 7)`
+- `src/main/java/com/jreg/controller/HealthController.java (line 6)`
+- `src/main/java/com/jreg/storage/S3StorageBackend.java (line 9)`
+- `src/main/java/com/jreg/storage/S3StorageBackend.java (line 8)`
+- `src/main/java/com/jreg/storage/StorageBackend.java (line 5)`
+
+</details>
+
+<details id="Use_of_unsecured_network_protocols_or_URI_libraries">
+<summary><b>Use of unsecured network protocols or URI libraries</b> — affected files</summary>
+
+- `src/test/resources/application-test.yml (line 8)`
+- `specs/001-oci-registry-server/contracts/openapi.yaml (line 25)`
+- `src/main/resources/application-local.yml (line 8)`
+
+</details>
+
+<details id="AWS_region_configuration">
+<summary><b>AWS region configuration</b> — affected files</summary>
+
+- `specs/001-oci-registry-server/research.md (line 633)`
+- `specs/001-oci-registry-server/research.md (line 675)`
+
+</details>
+
+<details id="CRA_Hard-coded_credentials_in_configuration_files">
+<summary><b>CRA: Hard-coded credentials in configuration files</b> — affected files</summary>
+
+- `src/test/resources/application-test.yml (line 11)`
+- `src/main/resources/application-local.yml (line 11)`
+
+</details>
+
+<details id="AWS_S3_dependency_usage_found">
+<summary><b>AWS S3 dependency usage found</b> — affected files</summary>
+
+- `pom.xml (line 51)`
+
+</details>
+
+<details id="Local_HTTP_Calls">
+<summary><b>Local HTTP Calls</b> — affected files</summary>
+
+- `specs/001-oci-registry-server/contracts/openapi.yaml (line 25)`
+
+</details>
+
+<details id="Avoid_using_hardcoded_URLs_HTTP_protocol_in_source_code">
+<summary><b>Avoid using hardcoded URLs (HTTP protocol) in source code</b> — affected files</summary>
+
+- `src/test/resources/application-test.yml (line 8)`
+- `specs/001-oci-registry-server/contracts/openapi.yaml (line 25)`
+- `specs/001-oci-registry-server/contracts/openapi.yaml (line 27)`
+- `specs/001-oci-registry-server/contracts/openapi.yaml (line 864)`
+- `src/main/resources/application-local.yml (line 8)`
+
+</details>
+
+## Upgrade Issues
+
+| Issue Name | Criticality | Story Points | Occurrences |
+|------------|-------------|--------------|-------------|
+| Spring Boot Version Has Reached the End of OSS Support | Mandatory | 8 | [4](#Spring_Boot_Version_Has_Reached_the_End_of_OSS_Support) |
+| Spring Framework Version Has Reached the End of OSS Support | Mandatory | 8 | [2](#Spring_Framework_Version_Has_Reached_the_End_of_OSS_Support) |
+| Java Version is not the latest LTS | Optional | 8 | [1](#Java_Version_is_not_the_latest_LTS) |
+
+### Issue Details
+
+<details id="Spring_Boot_Version_Has_Reached_the_End_of_OSS_Support">
+<summary><b>Spring Boot Version Has Reached the End of OSS Support</b> — affected files</summary>
+
+- `pom.xml (line 37)`
+- `pom.xml (line 84)`
+- `pom.xml (line 43)`
+- `pom.xml (line 31)`
+
+</details>
+
+<details id="Spring_Framework_Version_Has_Reached_the_End_of_OSS_Support">
+<summary><b>Spring Framework Version Has Reached the End of OSS Support</b> — affected files</summary>
+
+- `pom.xml (line 31)`
+- `pom.xml (line 84)`
+
+</details>
+
+<details id="Java_Version_is_not_the_latest_LTS">
+<summary><b>Java Version is not the latest LTS</b> — affected files</summary>
+
+- `pom.xml (line 22)`
+
+</details>
+
+---
+
+## Codebase Insights
+
+> **Note:** These documents are generated by AI and may contain inaccuracies or incomplete information. Please review carefully.
+
+> **Codebase Insights aren't available yet.**
+>
+> These documents are generated when assessment runs with **Full analysis** coverage. Re-run the assessment and set `analysisCoverage: full` to enable them.
+
+[Share feedback](https://aka.ms/ghcp-appmod/feedback)
