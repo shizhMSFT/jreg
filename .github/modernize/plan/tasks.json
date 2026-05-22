@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Tasks template for modernization plan. Generate this file alongside plan.md to track individual migration tasks.",
+  "tasks": [
+    {
+      "type": "transform",
+      "id": "001-transform-migrate-s3-to-azure-blob-storage",
+      "description": "Replace AWS S3 storage backend with Azure Blob Storage. Migrate the S3StorageBackend implementation and S3Config to use Azure Blob Storage, and update pom.xml to replace the AWS SDK S3 dependency with the Azure Blob Storage SDK.",
+      "reason": "The application currently uses AWS SDK for Java 2.x (S3Client) to store and retrieve OCI registry objects. Migrating to Azure Blob Storage is required to remove the AWS dependency and host the application on Azure.",
+      "requirements": "Replace the AWS S3 SDK dependency (software.amazon.awssdk:s3) with the Azure Blob Storage SDK. Migrate S3StorageBackend to an Azure Blob Storage–backed implementation using BlobServiceClient. Migrate S3Config to configure the Azure Blob Storage client. Use Managed Identity for authentication to Azure Blob Storage. Ensure all storage operations (get, put, delete, list, head/metadata) are functionally equivalent in the new implementation.",
+      "skills": [
+        {
+          "name": "migration-s3-to-azure-blob-storage",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "true",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "002-security-cve-remediation",
+      "description": "Scan all project dependencies for known CVEs and remediate identified vulnerabilities to ensure the application is secure before deployment.",
+      "reason": "After migrating dependencies from AWS SDK to Azure SDK, a CVE scan ensures no known vulnerabilities are introduced or left unaddressed in the updated dependency tree.",
+      "requirements": "Upgrade vulnerable dependencies to the minimum patched version. If a CVE fix requires a major version upgrade, document the affected dependency, the current version, the upgraded major version, and the breaking change risk. Verify that the project builds and all tests pass after remediation.",
+      "dependencies": [
+        "001-transform-migrate-s3-to-azure-blob-storage"
+      ],
+      "skills": [
+        {
+          "name": "validate-cves-and-fix",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "deployment",
+      "id": "003-deployment-azure-app-service",
+      "description": "Deploy the jreg application to Azure App Service. Use the existing Dockerfile (eclipse-temurin:21-jre-alpine) to build and deploy the containerized application.",
+      "reason": "The user explicitly requested Azure App Service as the deployment target for the modernized application.",
+      "requirements": "Deploy the jreg Spring Boot application to Azure App Service. Use the existing Dockerfile at the repository root. Configure the App Service to connect to the Azure Blob Storage container using Managed Identity. Provision a new Azure App Service resource.",
+      "targetAzureService": "Azure App Service",
+      "resourceStatus": "Create new Azure App Service resource",
+      "deploymentTool": "bicep",
+      "dependencies": [
+        "002-security-cve-remediation"
+      ],
+      "skills": [
+        {
+          "name": "azcli-appservice-deploy",
+          "location": "builtin"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "planName": "plan",
+    "projectName": "jreg",
+    "language": "java",
+    "createdAt": "2026-05-22T16:06:16.238+08:00",
+    "version": "1.0"
+  }
+}
